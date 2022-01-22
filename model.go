@@ -12,7 +12,7 @@ const (
 	CollectionNameUserSubscription = "UserSubscription"
 )
 
-// Plan サブスクプラン
+// Plan サブスクリプションのプラン
 type Plan struct {
 	ID              string     `firestore:"id"`
 	Title           string     `firestore:"title"`
@@ -22,14 +22,14 @@ type Plan struct {
 	Benefits        []*Benefit `firestore:"benefits"`
 }
 
-// Benefit サブスク適用のためのデータを定義(割引額等)。今回は触れない
+// Benefit サブスクリプション適用のためのデータを定義(割引額等)。今回は触れない
 type Benefit struct {
 	ID    string `firestore:"id"`
 	Title string `firestore:"title"`
 	// DiscountValue int32 `firestore:"discount_value"`
 }
 
-// Subscription サブスクは複数のプランを保持できる
+// Subscription サブスクリプションは複数のプランを保持できる
 type Subscription struct {
 	ID    string  `firestore:"-"`
 	Title string  `firestore:"title"`
@@ -49,7 +49,7 @@ func (s *Subscription) UserSubscriptionID(customerID string) string {
 	return fmt.Sprintf("%s-%s", customerID, s.ID)
 }
 
-// UserSubscription ユーザー毎の加入サブスクプランの状態を定義
+// UserSubscription ユーザー毎のサブスクリプションプランの状態を定義
 type UserSubscription struct {
 	ID                    string                    `firestore:"-"`
 	CustomerID            string                    `firestore:"customer_id"`
