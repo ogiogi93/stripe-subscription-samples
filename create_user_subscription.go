@@ -1,13 +1,14 @@
 package main
 
 import (
-	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/stripe/stripe-go"
 	"log"
 	"net/http"
+
+	"cloud.google.com/go/firestore"
+	"github.com/google/uuid"
+	"github.com/stripe/stripe-go"
 )
 
 type CreateUserSubscriptionRequest struct {
@@ -21,7 +22,7 @@ type CreateUserSubscriptionResponse struct {
 	ClientSecret string                     `json:"client_secret"`
 }
 
-func createUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
+func CreateUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	var req *CreateUserSubscriptionRequest
@@ -35,7 +36,7 @@ func createUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 	var intent *stripe.PaymentIntent
 	err := fsClient.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		// DBからSubscriptionを取得する
-		sub, _ := getSubscription(tx, req.SubscriptionID)
+		sub, _ := GetSubscriptionTx(tx, req.SubscriptionID)
 		plan := sub.Plan(req.PlanID)
 
 		// Stripe上にてSubscriptionを作成する https://stripe.com/docs/api/subscriptions/create
@@ -51,6 +52,8 @@ func createUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 			ProrationBehavior: stripe.String(string(stripe.SubscriptionProrationBehaviorNone)), // 日割り計算に関するパラメータ。今回は日割りなしを想定しているのでNoneを選択する https://stripe.com/docs/billing/subscriptions/prorations
 			PaymentBehavior:   stripe.String("allow_incomplete"),                               // 支払い処理に関するパラメータ。決済処理まで一気に処理をすすめる場合は allow_incompleteを選択する
 		}
+		params.AddMetadata("subscription_id", sub.ID)
+		params.AddMetadata("plan_id", plan.ID)
 		params.AddExpand("latest_invoice.payment_intent") // レスポンスとして最新のInvoiceに紐づくPaymentIntentを取得したいためAddExpandに指定しておく
 		params.SetIdempotencyKey(idempotencyKey)          // 冪等キー
 
@@ -60,8 +63,8 @@ func createUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		intent = s.LatestInvoice.PaymentIntent
-		ub := NewUserSubscription(req.CustomerID, sub.ID, plan.ID, s)
-		ub, _ = createSubscription(tx, ub)
+		ub := NewUserSubscription(sub.UserSubscriptionID(req.CustomerID), req.CustomerID, sub.ID, plan.ID, s)
+		ub, _ = CreateUserSubscriptionTx(tx, ub)
 		return nil
 	})
 	if err != nil {
@@ -78,26 +81,4 @@ func createUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("createUserSubscriptionHandler: %v", err)
 		return
 	}
-}
-
-func getSubscription(tx *firestore.Transaction, id string) (*Subscription, error) {
-	dr := fsClient.Collection(CollectionNameSubscription).Doc(id)
-	ds, err := tx.Get(dr)
-	if err != nil {
-		return nil, err
-	}
-	var s Subscription
-	if err := ds.DataTo(&s); err != nil {
-		return nil, err
-	}
-	return &s, nil
-}
-
-func createSubscription(tx *firestore.Transaction, ub *UserSubscription) (*UserSubscription, error) {
-	dr := fsClient.Collection(CollectionNameUserSubscription).NewDoc()
-	if err := tx.Set(dr, ub); err != nil {
-		return nil, err
-	}
-	ub.ID = dr.ID
-	return ub, nil
 }

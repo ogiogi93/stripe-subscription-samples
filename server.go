@@ -18,7 +18,12 @@ var (
 func main() {
 	mainMux := http.NewServeMux()
 
-	mainMux.HandleFunc("/create-subscription", createUserSubscriptionHandler)
+	mainMux.HandleFunc("/create-subscription", CreateUserSubscriptionHandler)
+	mainMux.HandleFunc("/update-subscription", UpdateUserSubscriptionHandler)
+	mainMux.HandleFunc("/update-subscription-immediately", UpdateUserSubscriptionImmediatelyHandler)
+	mainMux.HandleFunc("/cancel-subscription", CancelUserSubscriptionHandler)
+	mainMux.HandleFunc("/update-subscription-payment", UpdateUserSubscriptionPaymentHandler)
+
 	mainSrv := &http.Server{
 		Addr:    "4321",
 		Handler: mainMux,

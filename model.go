@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/stripe/stripe-go"
+	"fmt"
 	"time"
+
+	"github.com/stripe/stripe-go"
 )
 
 const (
@@ -43,9 +45,13 @@ func (s *Subscription) Plan(planID string) *Plan {
 	return nil
 }
 
+func (s *Subscription) UserSubscriptionID(customerID string) string {
+	return fmt.Sprintf("%s-%s", customerID, s.ID)
+}
+
 // UserSubscription ユーザー毎の加入サブスクプランの状態を定義
 type UserSubscription struct {
-	ID                    string                    `firestore:"-" json:"-"`
+	ID                    string                    `firestore:"-"`
 	CustomerID            string                    `firestore:"customer_id"`
 	SubscriptionID        string                    `firestore:"subscription_id"`
 	PlanID                string                    `firestore:"plan_id"`
@@ -54,19 +60,41 @@ type UserSubscription struct {
 	LatestPaymentIntentID string                    `firestore:"latest_payment_intent_id"`
 	StartedAt             time.Time                 `firestore:"started_at"`
 
+	StripeSubscriptionID     string `firestore:"stripe_subscription_id"`
+	StripeSubscriptionItemID string `firestore:"stripe_subscription_item_id"`
+
 	CurrentPeriodStart time.Time `firestore:"current_period_start"`
 	CurrentPeriodEnd   time.Time `firestore:"current_period_end"`
 }
 
-func NewUserSubscription(customerID, subscriptionID, planID string, sub *stripe.Subscription) *UserSubscription {
+func (us *UserSubscription) Renewal(planID string) {
+	us.PlanID = planID
+	us.NextPlanID = ""
+}
+
+func (us *UserSubscription) RenewalAll(planID string, sub *stripe.Subscription) {
+	us.Renewal(planID)
+
+	us.StripeSubscriptionID = sub.ID
+	us.StripeSubscriptionItemID = sub.Items.Data[0].ID
+	us.Status = sub.Status
+	us.CurrentPeriodStart = time.Unix(sub.CurrentPeriodStart, 0)
+	us.CurrentPeriodEnd = time.Unix(sub.CurrentPeriodEnd, 0)
+	us.LatestPaymentIntentID = sub.LatestInvoice.PaymentIntent.ID
+}
+
+func NewUserSubscription(id, customerID, subscriptionID, planID string, sub *stripe.Subscription) *UserSubscription {
 	return &UserSubscription{
-		CustomerID:            customerID,
-		SubscriptionID:        subscriptionID,
-		PlanID:                planID,
-		Status:                sub.Status,
-		LatestPaymentIntentID: sub.LatestInvoice.PaymentIntent.ID,
-		StartedAt:             time.Now(),
-		CurrentPeriodStart:    time.Unix(sub.CurrentPeriodStart, 0),
-		CurrentPeriodEnd:      time.Unix(sub.CurrentPeriodEnd, 0),
+		ID:                       id,
+		CustomerID:               customerID,
+		SubscriptionID:           subscriptionID,
+		PlanID:                   planID,
+		StripeSubscriptionID:     sub.ID,
+		StripeSubscriptionItemID: sub.Items.Data[0].ID,
+		Status:                   sub.Status,
+		LatestPaymentIntentID:    sub.LatestInvoice.PaymentIntent.ID,
+		StartedAt:                time.Now(),
+		CurrentPeriodStart:       time.Unix(sub.CurrentPeriodStart, 0),
+		CurrentPeriodEnd:         time.Unix(sub.CurrentPeriodEnd, 0),
 	}
 }
