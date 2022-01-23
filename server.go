@@ -24,6 +24,8 @@ func main() {
 	mainMux.HandleFunc("/cancel-subscription", CancelUserSubscriptionHandler)
 	mainMux.HandleFunc("/update-subscription-payment", UpdateUserSubscriptionPaymentHandler)
 
+	mainMux.HandleFunc("/webhook", WebhookHandler)
+
 	mainSrv := &http.Server{
 		Addr:    "4321",
 		Handler: mainMux,
