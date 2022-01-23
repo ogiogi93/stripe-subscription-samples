@@ -55,4 +55,5 @@ func UpdateUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("updateUserSubscriptionHandler: %v", err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
