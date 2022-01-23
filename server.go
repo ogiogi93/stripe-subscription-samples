@@ -23,6 +23,7 @@ func main() {
 	mainMux.HandleFunc("/update-subscription-immediately", UpdateUserSubscriptionImmediatelyHandler)
 	mainMux.HandleFunc("/cancel-subscription", CancelUserSubscriptionHandler)
 	mainMux.HandleFunc("/update-subscription-payment", UpdateUserSubscriptionPaymentHandler)
+	mainMux.HandleFunc("/recreate-subscription", ReCreateUserSubscriptionHandler)
 
 	mainMux.HandleFunc("/webhook", WebhookHandler)
 
