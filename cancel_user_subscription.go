@@ -41,4 +41,5 @@ func CancelUserSubscriptionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("cancelSubscriptionHandler: %v", err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
