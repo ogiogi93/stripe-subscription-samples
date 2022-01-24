@@ -5,7 +5,7 @@ type Plan struct {
 	ID              string     `firestore:"id"`
 	Title           string     `firestore:"title"`
 	StripeProductID string     `firestore:"stripe_product_id"`
-	StripePriceID   string     `firestore:"stripe_product_id"`
+	StripePriceID   string     `firestore:"stripe_price_id"`
 	Price           int32      `firestore:"price"`
 	Benefits        []*Benefit `firestore:"benefits"`
 }
